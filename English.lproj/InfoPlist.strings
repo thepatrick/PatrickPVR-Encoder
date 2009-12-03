@@ -1,0 +1,7 @@
+/* Localized versions of Info.plist keys */
+
+
+
+CFBundleName = "TVHandler";
+CFBundleGetInfoString = "TV Handler version 1.0, Copyright 2009 Patrick Quinn-Graham.";
+NSHumanReadableCopyright = "Copyright © 2009 Patrick Quinn-Graham.";
