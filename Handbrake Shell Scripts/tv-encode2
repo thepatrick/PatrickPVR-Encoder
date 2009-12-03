@@ -1,0 +1,34 @@
+#!/bin/bash
+
+echo "Started: `date`"
+echo ""
+
+for i in *.m2t; do
+	if [ -f "$i" ]; then
+		outname=`basename "$i" .m2t`.m4v
+		
+		echo "Starting ${outname}"
+		
+		/usr/local/bin/HandBrakeCLI -i "$i" -o "$outname"  -e x264 -b 4000 -a 1,1 -E faac,ac3 -B 160,auto -R 48,Auto -6 dpl2,auto -r 25 -f mp4 -4 -5 -X 1280 -Y 720 -P -x level=30:cabac=0:ref=3:mixed-refs=1:bframes=6:weightb=1:direct=auto:no-fast-pskip=1:me=umh:subq=7:analyse=all -v 9 2>handbroke.log > "$i.log"
+		if [ ! -f "$outname" ]; then
+			touch "$i.failed"
+		fi
+		if [ -f "$outname" ]; then
+			rm "$i.log"
+			if [ -d /Volumes/Dream/To-iTunes ]; then
+				mv "$outname" /Volumes/Dream/To-iTunes/ #> /dev/null 2>&1 
+			else
+				echo "Can't move as /Volumes/Dream/To-iTunes doesn't exist"
+			fi
+		fi
+		rm "$i"
+		
+		echo ""
+		echo "Done ${outname}: `date`"
+		echo ""
+		
+	fi
+done
+
+echo "All finished: `date`."
+echo ""

@@ -1,0 +1,174 @@
+#!/usr/bin/env ruby
+require 'open-uri'
+require 'rubygems'
+require 'active_record'
+require 'rexml/document'
+require 'date'
+require 'fileutils'
+
+
+##
+ # README!
+ #
+ # This script relies on ActiveRecord and ruby gems. Install both. Now. Or later, I guess.
+ #
+ # You'll need a suitable database to cache TVRage information to. This can be the same as your
+ # EPG database. Set up the configuration just below so we can connect to it. You'll also need to
+ # set the paths as needed on your system. Ideally these should not be hard coded and should
+ # instead be in some kind of configuration store. Oh well.
+ #
+ # Finally you'll need to edit the plist in this folder to point at the location of this
+ # file on disk, and then put it in ~/Library/LaunchAgents. Then using terminal issue a
+ # launchctl load path/to/com.pftqg.tv.quick-encode.plist. Logging out and logging in may
+ # also work, if you're not the terminal type.
+ ##
+ 
+##
+ # Copyright (c) 2009 Patrick Quinn-Graham
+ # 
+ # Permission is hereby granted, free of charge, to any person obtaining
+ # a copy of this software and associated documentation files (the
+ # "Software"), to deal in the Software without restriction, including
+ # without limitation the rights to use, copy, modify, merge, publish,
+ # distribute, sublicense, and/or sell copies of the Software, and to
+ # permit persons to whom the Software is furnished to do so, subject to
+ # the following conditions:
+ # 
+ # The above copyright notice and this permission notice shall be
+ # included in all copies or substantial portions of the Software.
+ # 
+ # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ # NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ ##
+ 
+class TvrageCache < ActiveRecord::Base
+end
+
+ActiveRecord::Base.establish_connection(:adapter => "postgresql", :database => "iplayer_rss",
+    :host => "localhost", :port => 5432, :username => 'patrick');
+    
+def get_tv_show(showname_clean)
+  
+	tvshow = TvrageCache.find_or_create_by_showname(showname_clean)
+	if tvshow.tvrageid.nil?
+    read_data = open("http://services.tvrage.com/feeds/search.php?show=" + CGI.escape(showname_clean)).read
+  
+    doc = REXML::Document.new(read_data)
+    show_id, x = doc.root.elements['show/showid']
+    unless show_id.nil?
+      tvshow.tvrageid = show_id.text.to_i
+    end
+  
+    tvshow.save
+  end
+  
+  tvshow
+end
+
+def options(doc, season, name)
+
+  tvr_season = doc.root.elements['Episodelist/Season[@no=' + season.to_s + ']']
+  
+  my_options = nil
+  
+  unless tvr_season.nil?
+    tvr_season.elements.each('episode') do |ep|
+      seasonnum = ep.elements['seasonnum'].text
+      epnum = ep.elements['epnum'].text
+      airdate = ep.elements['airdate'].text
+      title = ep.elements['title'].text
+      
+      name_test = name.downcase.gsub(/[^a-z]+/, '')
+      title_test = title.downcase.gsub(/[^a-z]+/, '')
+    
+      show_det = seasonnum + ": " + title + ' ('+ airdate + ", " + epnum + ')'
+      
+      if name_test == title_test
+        
+        my_options = 'S'+ season.to_s + 'E' + seasonnum
+        
+      end 
+    end
+  end
+  
+  my_options
+
+end
+
+
+def item_listing(file, where)
+      v, episode, name = file.to_s.scan(/^(.*)\.PVREP ([^\.]+)?[\.]?(.*)\.m2t/)[0]
+      
+      tvshow = get_tv_show(v)
+      
+      #14983
+      ep_data_url = "http://services.tvrage.com/feeds/episode_list.php?sid=" + tvshow.tvrageid.to_s
+      
+      read_data = open(ep_data_url).read
+      doc = REXML::Document.new(read_data)
+      if(tvshow.overridename.nil?)
+        unless doc.root.nil?
+          tvr_show_name = doc.root.elements['name']
+          unless tvr_show_name.nil?
+            showname_clean = tvr_show_name.text
+          end
+        end
+      else
+        showname_clean = tvshow.overridename
+      end
+      
+      tvr_seasons = 0
+      unless doc.root.nil?
+        tvr_seasons = doc.root.elements['totalseasons'].text.to_i
+      end
+    
+      ep_chooser = ''
+      
+      tr = []
+      while(tvr_seasons > 0)
+        tr_t = options(doc, tvr_seasons, name)
+        unless tr_t.nil?
+          tr[tr.length] = tr_t
+        end
+        
+        tvr_seasons = tvr_seasons - 1
+      end
+      
+      
+      mod = File.mtime(where + file).to_s
+      
+      puts v + (episode.nil? ? "" : " (ep: " + episode + ")") + (name.nil? ? "" : ": " + name) + "\n"
+      
+      if tr.length == 1
+        as = where + "Working/" + v + "." + tr[0] + ".m2t"
+        puts " ... should move to: " + as
+        FileUtils.mv where + file.to_s, as
+      else
+        puts " ... can't handle this, make Patrick do it"
+      end
+      
+end
+
+def folder_listing
+  
+  encoding_file = nil
+  display_name = nil
+  dir = '/Users/patrick/Movies/'
+  Dir.open(dir).each do |file|
+
+    if file.to_s.scan(/\.m2t$/).length > 0
+          
+        item_listing(file, dir)
+
+    end
+
+  end
+  
+end
+
+folder_listing

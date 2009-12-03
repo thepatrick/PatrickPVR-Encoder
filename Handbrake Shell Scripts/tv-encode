@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo "tv-encode, 2009-05-10, v1.4"
+echo "==========================="
+echo ""
+
+PATH=$PATH:$1
+
+cd "$2"
+
+while true; do
+	
+	if [ `ls -l | grep -c m2t$` != "0" ]; then
+		tv-encode2
+	fi
+	
+	sleep 60
+	
+done
+

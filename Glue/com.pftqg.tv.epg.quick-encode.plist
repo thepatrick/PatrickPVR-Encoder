@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.pftqg.tv.epg.quick-encode</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/patrick/Sites/a/CGI-Executables/pvr/quick-encode</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>300</integer>
+	<key>UserName</key>
+	<string>patrick</string>
+</dict>
+</plist>
