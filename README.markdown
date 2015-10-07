@@ -13,7 +13,7 @@ Notes
 ToDo
 --------
 1. Ideally it will eventually use the Turbo.264 HD QuickTime encoder and not AppleScript so it can have actual knowledge of progress. Also that would allow for more seamless fallback to a software (e.g. Handbrake) h.264 encoder.
-2. It should be configurable as to what it does with the end file. e.g. it shouldn't just do the AppleScript thing to TVMagic2, it should actually ask / have a configureable option.
+2. It should be configurable as to what it does with the end file. e.g. it shouldn't just do the AppleScript thing to TVMagic2, it should actually ask / have a configurable option.
 3. Integrate something like HDTVtoMPEG to remove advertising.
 4. Support AppleScript itself so that the PVR can just tell it to encode things rather than polling.
 
